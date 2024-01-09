@@ -1,0 +1,60 @@
+#!/bin/env python3
+import oksdbinterfaces
+import coredal
+
+import click
+import os
+import glob
+
+@click.command()
+@click.option('--disable', '-d', default=False, is_flag=True,
+              help='disable rather than enable the specified resources')
+@click.option('--session_name', '-s', type=str, default='',
+              help='Name of session to manipulate if not specified the first '
+              'session found in the database will be used')
+@click.argument('oksfile')
+@click.argument('resource', required=True, nargs=-1)
+def enable(oksfile, disable, resource, session_name):
+  """Script to enable or disable (-d) Resources from the first Session of the
+  specified OKS database file"""
+  db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+  if session_name == '':
+    session_dals = db.get_dals(class_name="Session")
+    if len(session_dals) == 0:
+      click.secho(f'Error could not find any Session in file {oksfile}',fg='red')
+      return
+    session = session_dals[0]
+  else:
+    try:
+      session = db.get_dal("Session", session_name)
+    except: 
+      click.secho(f'Error could not find Session {session_name} in file {oksfile}',fg='red')
+      return
+  disabled = session.disabled
+  for res in resource:
+    try:
+      res_dal = db.get_dal("ResourceBase", res)
+    except:
+      click.secho(f'Error could not find Resource {res} in file {oksfile}',fg='red')
+      continue
+
+    if (disable):
+      if res_dal in disabled:
+        click.secho(f"{res} is already in disabled relationship of Session {session.id}")
+      else:
+      # Add to the Segment's disabled list
+        click.secho(f"Adding {res} to disabled relationship of Session {session.id}")
+        disabled.append(res_dal)
+    else:
+      if res_dal not in disabled:
+        click.secho(f"{res} is not in disabled relationship of Session {session.id}")
+      else:
+      # Remove from the Segments disabled list
+        click.secho(f"Removing {res} from disabled relationship of Session {session.id}")
+        disabled.remove(res_dal)
+  session.disabled = disabled
+  db.update_dal(session)
+  db.commit()
+
+if __name__ == '__main__':
+  enable()
