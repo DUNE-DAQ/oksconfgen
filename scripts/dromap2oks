@@ -38,7 +38,6 @@ def generate(jsonfile, oksfile, src_id_offset):
   last_pars = None
   eth_streams_found = False
   flx_streams_found = False
-  nic_number = 0
   for entry in jsonmap:
     src_id = entry['src_id'] + src_id_offset
     if entry["kind"] == "eth":
@@ -65,10 +64,9 @@ def generate(jsonfile, oksfile, src_id_offset):
                                      configuration = nic_config_dal
                                      )
           db.update_dal(nic_dal)
-          rogroup_dal = dal.ReadoutGroup(f"group-{nic_number}",
+          rogroup_dal = dal.ReadoutGroup(f"group-{last_src_id}",
                                          contains=[nic_dal])
           db.update_dal(rogroup_dal)
-          nic_number = nic_number + 1
           streams = []
       if pars != last_pars:
         # Only create a new dal object if the parameters are different to the last one
