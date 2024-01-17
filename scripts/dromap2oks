@@ -8,11 +8,13 @@ import sys
 
 
 @click.command()
+@click.option('--nomap', '-n', is_flag=True,
+              help='Disable generation of the ReadoutMap object')
 @click.option('--src_id_offset', '-s', default=0,
               help='Offset to add to src_ids in the generated output')
 @click.argument('jsonfile', type=click.Path(exists=True))
 @click.argument('oksfile', default='')
-def generate(jsonfile, oksfile, src_id_offset):
+def generate(jsonfile, oksfile, src_id_offset, nomap):
   """Simple script to convert a JSON readout map file to an OKS file."""
 
   group_name = os.path.basename(jsonfile).removesuffix(".json")
@@ -33,7 +35,7 @@ def generate(jsonfile, oksfile, src_id_offset):
   db = oksdbinterfaces.Configuration("oksconfig")
   db.create_db(oksfile, schemafiles)
 
-  group = []
+  groups = []
   streams = []
   last_eth_pars = None
   last_felix_pars = None
@@ -69,6 +71,7 @@ def generate(jsonfile, oksfile, src_id_offset):
           rogroup_dal = dal.ReadoutGroup(f"group-{last_eth_src_id}",
                                          contains=[nic_dal])
           db.update_dal(rogroup_dal)
+          groups.append(rogroup_dal)
           streams = []
       if pars != last_eth_pars:
         # Only create a new dal object if the parameters are different to the last one
@@ -101,6 +104,7 @@ def generate(jsonfile, oksfile, src_id_offset):
           rogroup_dal = dal.ReadoutGroup(f"group-{last_felix_src_id}",
                                          contains=[felix_dal])
           db.update_dal(rogroup_dal)
+          groups.append(rogroup_dal)
           streams = []
       stream_pars = dal.FelixStreamParameters(f"flxpars-{src_id}",
                                               protocol = pars["protocol"],
@@ -143,6 +147,7 @@ def generate(jsonfile, oksfile, src_id_offset):
     rogroup_dal = dal.ReadoutGroup(f"group-{eth_src_id}",
                                    contains=[nic_dal])
     db.update_dal(rogroup_dal)
+    groups.append(rogroup_dal)
 
   if flx_streams_found and len(streams) > 0:
     print(f"Adding final FelixInterface felix-{flx_src_id}")
@@ -155,6 +160,11 @@ def generate(jsonfile, oksfile, src_id_offset):
     rogroup_dal = dal.ReadoutGroup(f"group-{flx_src_id}",
                                    contains=[felix_dal])
     db.update_dal(rogroup_dal)
+    groups.append(rogroup_dal)
+
+  if not nomap:
+    map_dal = dal.ReadoutMap("readoutmap", groups=groups)
+    db.update_dal(map_dal)
   db.commit()
 
 if __name__ == '__main__':
