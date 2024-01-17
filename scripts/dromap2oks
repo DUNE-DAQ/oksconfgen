@@ -35,12 +35,14 @@ def generate(jsonfile, oksfile, src_id_offset):
 
   group = []
   streams = []
-  last_pars = None
+  last_eth_pars = None
+  last_felix_pars = None
   eth_streams_found = False
   flx_streams_found = False
   for entry in jsonmap:
     src_id = entry['src_id'] + src_id_offset
     if entry["kind"] == "eth":
+      eth_src_id = src_id
       if not eth_streams_found:
         eth_streams_found = True
         nic_stats_dal = dal.NICStatsConf(f"nicStats-{group_name}")
@@ -50,25 +52,25 @@ def generate(jsonfile, oksfile, src_id_offset):
         db.update_dal(nic_config_dal)
 
       pars = entry["parameters"]
-      if last_pars != None:
+      if last_eth_pars != None:
         #print(f"streams in nic {pars['rx_mac']} = {len(streams)}")
-        if pars["rx_mac"] != last_pars["rx_mac"]:
+        if pars["rx_mac"] != last_eth_pars["rx_mac"]:
         #if len(streams) > 0:
-          print(f"New nic adding nic {last_pars['rx_mac']} with id nic-{last_src_id}")
-          nic_dal = dal.NICInterface(f"nic-{last_src_id}",
-                                     rx_hostname = last_pars["rx_host"],
-                                     rx_mac = last_pars["rx_mac"],
-                                     rx_ip = last_pars["rx_ip"],
-                                     rx_iface = last_pars["rx_iface"],
+          print(f"New nic adding nic {last_eth_pars['rx_mac']} with id nic-{last_eth_src_id}")
+          nic_dal = dal.NICInterface(f"nic-{last_eth_src_id}",
+                                     rx_hostname = last_eth_pars["rx_host"],
+                                     rx_mac = last_eth_pars["rx_mac"],
+                                     rx_ip = last_eth_pars["rx_ip"],
+                                     rx_iface = last_eth_pars["rx_iface"],
                                      contains = streams,
                                      configuration = nic_config_dal
                                      )
           db.update_dal(nic_dal)
-          rogroup_dal = dal.ReadoutGroup(f"group-{last_src_id}",
+          rogroup_dal = dal.ReadoutGroup(f"group-{last_eth_src_id}",
                                          contains=[nic_dal])
           db.update_dal(rogroup_dal)
           streams = []
-      if pars != last_pars:
+      if pars != last_eth_pars:
         # Only create a new dal object if the parameters are different to the last one
         stream_pars = dal.EthStreamParameters(f"pars-{src_id}",
                                               protocol = pars["protocol"],
@@ -81,20 +83,24 @@ def generate(jsonfile, oksfile, src_id_offset):
                                               )
 
         db.update_dal(stream_pars)
-        last_pars = pars
+        last_eth_pars = pars
+        last_eth_src_id = src_id
     elif entry["kind"] == "flx":
+      flx_src_id = src_id
       flx_streams_found = True
       pars = entry["parameters"]
-      if not last_pars == None:
-        if pars["card"] !=  last_pars["card"] or pars["slr"] != last_pars["slr"]:
-          print(f'Adding FelixInterface felix-{last_src_id} slr={last_pars["slr"]}')
-          felix_dal = dal.FelixInterface(f"felix-{last_src_id}",
-                                         card = last_pars["card"],
-                                         slr = last_pars["slr"],
+      if not last_felix_pars == None:
+        if pars["card"] !=  last_felix_pars["card"] or pars["slr"] != last_felix_pars["slr"]:
+          print(f'Adding FelixInterface felix-{last_felix_src_id} slr={last_felix_pars["slr"]}')
+          felix_dal = dal.FelixInterface(f"felix-{last_felix_src_id}",
+                                         card = last_felix_pars["card"],
+                                         slr = last_felix_pars["slr"],
                                          contains = streams
                                          )
           db.update_dal(felix_dal)
-          group.append(felix_dal)
+          rogroup_dal = dal.ReadoutGroup(f"group-{last_felix_src_id}",
+                                         contains=[felix_dal])
+          db.update_dal(rogroup_dal)
           streams = []
       stream_pars = dal.FelixStreamParameters(f"flxpars-{src_id}",
                                               protocol = pars["protocol"],
@@ -102,7 +108,8 @@ def generate(jsonfile, oksfile, src_id_offset):
                                               link = pars["link"]
                                             )
       db.update_dal(stream_pars)
-      last_pars = pars
+      last_felix_pars = pars
+      last_felix_src_id = src_id
     else:
       raise RuntimeError(f'Unknown kind of readout {entry["kind"]}!')
     geo_id = entry["geo_id"]
@@ -123,31 +130,30 @@ def generate(jsonfile, oksfile, src_id_offset):
     last_src_id = src_id
 
   if eth_streams_found:
-    print(f"Ending by adding nic {last_pars['rx_mac']} with id nic-{src_id}")
-    nic_dal = dal.NICInterface(f"nic-{src_id}",
-                               rx_hostname = last_pars["rx_host"],
-                               rx_mac = last_pars["rx_mac"],
-                               rx_ip = last_pars["rx_ip"],
-                               rx_iface = last_pars["rx_iface"],
+    print(f"Ending by adding nic {last_eth_pars['rx_mac']} with id nic-{eth_src_id}")
+    nic_dal = dal.NICInterface(f"nic-{eth_src_id}",
+                               rx_hostname = last_eth_pars["rx_host"],
+                               rx_mac = last_eth_pars["rx_mac"],
+                               rx_ip = last_eth_pars["rx_ip"],
+                               rx_iface = last_eth_pars["rx_iface"],
                                contains = streams,
                                configuration = nic_config_dal
                                )
     db.update_dal(nic_dal)
-    rogroup_dal = dal.ReadoutGroup(f"group-{src_id}",
+    rogroup_dal = dal.ReadoutGroup(f"group-{eth_src_id}",
                                    contains=[nic_dal])
     db.update_dal(rogroup_dal)
 
   if flx_streams_found and len(streams) > 0:
-    print(f"Adding final FelixInterface felix-{src_id}")
-    felix_dal = dal.FelixInterface(f"felix-{src_id}",
-                                   card = last_pars["card"],
-                                   slr = last_pars["slr"],
+    print(f"Adding final FelixInterface felix-{flx_src_id}")
+    felix_dal = dal.FelixInterface(f"felix-{flx_src_id}",
+                                   card = last_felix_pars["card"],
+                                   slr = last_felix_pars["slr"],
                                    contains = streams
                                    )
     db.update_dal(felix_dal)
-    group.append(felix_dal)
-    rogroup_dal = dal.ReadoutGroup(group_name,
-                             contains=group)
+    rogroup_dal = dal.ReadoutGroup(f"group-{flx_src_id}",
+                                   contains=[felix_dal])
     db.update_dal(rogroup_dal)
   db.commit()
 
