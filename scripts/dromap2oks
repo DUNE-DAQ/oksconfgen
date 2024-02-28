@@ -10,18 +10,18 @@ import sys
 @click.command()
 @click.option('--nomap', '-n', is_flag=True,
               help='Disable generation of the ReadoutMap object')
-@click.option('--src_id_offset', '-s', default=0,
-              help='Offset to add to src_ids in the generated output')
+@click.option('--source_id_offset', '-s', default=0,
+              help='Offset to add to source_ids in the generated output')
 @click.argument('jsonfile', type=click.Path(exists=True))
 @click.argument('oksfile', default='')
-def generate(jsonfile, oksfile, src_id_offset, nomap):
+def generate(jsonfile, oksfile, source_id_offset, nomap):
   """Simple script to convert a JSON readout map file to an OKS file."""
 
   group_name = os.path.basename(jsonfile).removesuffix(".json")
   if oksfile == '':
     oksfile =  group_name + ".data.xml"
 
-  print(f"Converting RO map from {jsonfile} to OKS in {oksfile} offsetting src_ids by {src_id_offset}")
+  print(f"Converting RO map from {jsonfile} to OKS in {oksfile} offsetting source_ids by {source_id_offset}")
 
   with open(jsonfile) as f:
     jsonmap = json.loads(f.read())
@@ -42,9 +42,9 @@ def generate(jsonfile, oksfile, src_id_offset, nomap):
   eth_streams_found = False
   flx_streams_found = False
   for entry in jsonmap:
-    src_id = entry['src_id'] + src_id_offset
+    source_id = entry['src_id'] + source_id_offset
     if entry["kind"] == "eth":
-      eth_src_id = src_id
+      eth_source_id = source_id
       if not eth_streams_found:
         eth_streams_found = True
         nic_stats_dal = dal.NICStatsConf(f"nicStats-{group_name}")
@@ -58,8 +58,8 @@ def generate(jsonfile, oksfile, src_id_offset, nomap):
         #print(f"streams in nic {pars['rx_mac']} = {len(streams)}")
         if pars["rx_mac"] != last_eth_pars["rx_mac"]:
         #if len(streams) > 0:
-          print(f"New nic adding nic {last_eth_pars['rx_mac']} with id nic-{last_eth_src_id}")
-          nic_dal = dal.NICInterface(f"nic-{last_eth_src_id}",
+          print(f"New nic adding nic {last_eth_pars['rx_mac']} with id nic-{last_eth_source_id}")
+          nic_dal = dal.NICInterface(f"nic-{last_eth_source_id}",
                                      rx_hostname = last_eth_pars["rx_host"],
                                      rx_mac = last_eth_pars["rx_mac"],
                                      rx_ip = last_eth_pars["rx_ip"],
@@ -68,14 +68,14 @@ def generate(jsonfile, oksfile, src_id_offset, nomap):
                                      configuration = nic_config_dal
                                      )
           db.update_dal(nic_dal)
-          rogroup_dal = dal.ReadoutGroup(f"group-{last_eth_src_id}",
+          rogroup_dal = dal.ReadoutGroup(f"group-{last_eth_source_id}",
                                          contains=[nic_dal])
           db.update_dal(rogroup_dal)
           groups.append(rogroup_dal)
           streams = []
       if pars != last_eth_pars:
         # Only create a new dal object if the parameters are different to the last one
-        stream_pars = dal.EthStreamParameters(f"pars-{src_id}",
+        stream_pars = dal.EthStreamParameters(f"pars-{source_id}",
                                               protocol = pars["protocol"],
                                               mode = pars["mode"],
                                               tx_hostname = pars["tx_host"],
@@ -87,55 +87,55 @@ def generate(jsonfile, oksfile, src_id_offset, nomap):
 
         db.update_dal(stream_pars)
         last_eth_pars = pars
-        last_eth_src_id = src_id
+        last_eth_source_id = source_id
     elif entry["kind"] == "flx":
-      flx_src_id = src_id
+      flx_source_id = source_id
       flx_streams_found = True
       pars = entry["parameters"]
       if not last_felix_pars == None:
         if pars["card"] !=  last_felix_pars["card"] or pars["slr"] != last_felix_pars["slr"]:
-          print(f'Adding FelixInterface felix-{last_felix_src_id} slr={last_felix_pars["slr"]}')
-          felix_dal = dal.FelixInterface(f"felix-{last_felix_src_id}",
+          print(f'Adding FelixInterface felix-{last_felix_source_id} slr={last_felix_pars["slr"]}')
+          felix_dal = dal.FelixInterface(f"felix-{last_felix_source_id}",
                                          card = last_felix_pars["card"],
                                          slr = last_felix_pars["slr"],
                                          contains = streams
                                          )
           db.update_dal(felix_dal)
-          rogroup_dal = dal.ReadoutGroup(f"group-{last_felix_src_id}",
+          rogroup_dal = dal.ReadoutGroup(f"group-{last_felix_source_id}",
                                          contains=[felix_dal])
           db.update_dal(rogroup_dal)
           groups.append(rogroup_dal)
           streams = []
-      stream_pars = dal.FelixStreamParameters(f"flxpars-{src_id}",
+      stream_pars = dal.FelixStreamParameters(f"flxpars-{source_id}",
                                               protocol = pars["protocol"],
                                               mode = pars["mode"],
                                               link = pars["link"]
                                             )
       db.update_dal(stream_pars)
       last_felix_pars = pars
-      last_felix_src_id = src_id
+      last_felix_source_id = source_id
     else:
       raise RuntimeError(f'Unknown kind of readout {entry["kind"]}!')
     geo_id = entry["geo_id"]
-    geo_dal = dal.GeoId(f"geioId-{src_id}",
+    geo_dal = dal.GeoId(f"geioId-{source_id}",
                        detector_id = geo_id["det_id"],
                        crate_id = geo_id["crate_id"],
                        slot_id = geo_id["slot_id"],
                        stream_id = geo_id["stream_id"]
                        )
     db.update_dal(geo_dal)
-    stream = dal.DROStreamConf(f"DROStream-{src_id}",
-                               src_id = entry["src_id"],
+    stream = dal.DROStreamConf(f"DROStream-{source_id}",
+                               source_id = entry["src_id"],
                                stream_params = stream_pars,
                                geo_id = geo_dal
                                )
     db.update_dal(stream)
     streams.append(stream)
-    last_src_id = src_id
+    last_source_id = source_id
 
   if eth_streams_found:
-    print(f"Ending by adding nic {last_eth_pars['rx_mac']} with id nic-{eth_src_id}")
-    nic_dal = dal.NICInterface(f"nic-{eth_src_id}",
+    print(f"Ending by adding nic {last_eth_pars['rx_mac']} with id nic-{eth_source_id}")
+    nic_dal = dal.NICInterface(f"nic-{eth_source_id}",
                                rx_hostname = last_eth_pars["rx_host"],
                                rx_mac = last_eth_pars["rx_mac"],
                                rx_ip = last_eth_pars["rx_ip"],
@@ -144,20 +144,20 @@ def generate(jsonfile, oksfile, src_id_offset, nomap):
                                configuration = nic_config_dal
                                )
     db.update_dal(nic_dal)
-    rogroup_dal = dal.ReadoutGroup(f"group-{eth_src_id}",
+    rogroup_dal = dal.ReadoutGroup(f"group-{eth_source_id}",
                                    contains=[nic_dal])
     db.update_dal(rogroup_dal)
     groups.append(rogroup_dal)
 
   if flx_streams_found and len(streams) > 0:
-    print(f"Adding final FelixInterface felix-{flx_src_id}")
-    felix_dal = dal.FelixInterface(f"felix-{flx_src_id}",
+    print(f"Adding final FelixInterface felix-{flx_source_id}")
+    felix_dal = dal.FelixInterface(f"felix-{flx_source_id}",
                                    card = last_felix_pars["card"],
                                    slr = last_felix_pars["slr"],
                                    contains = streams
                                    )
     db.update_dal(felix_dal)
-    rogroup_dal = dal.ReadoutGroup(f"group-{flx_src_id}",
+    rogroup_dal = dal.ReadoutGroup(f"group-{flx_source_id}",
                                    contains=[felix_dal])
     db.update_dal(rogroup_dal)
     groups.append(rogroup_dal)
