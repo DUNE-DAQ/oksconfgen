@@ -87,6 +87,16 @@ def generate(readoutmap, oksfile, include, segment, session):
             break
         if match:
           break
+      else :
+        for filename in matches:
+          if filename not in includefiles:
+            click.secho(f"Adding {filename} to include list", fg='green')
+            includefiles.append(filename)
+          else:
+            click.secho(f"{filename} already in include list", fg='yellow')
+          match = True
+          break
+
     if not match:
       click.secho(f'Error could not find include file for {inc}',fg='red')
       return
@@ -196,7 +206,7 @@ def generate(readoutmap, oksfile, include, segment, session):
 
 
     ru = dal.ReadoutApplication(f"ru-{rog.id}",
-                                tp_src_id=appnum,
+                                tp_source_id=appnum,
                                 runs_on=host,
                                 contains=[rog],
                                 network_rules=netrules,
