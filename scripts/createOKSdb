@@ -3,6 +3,7 @@ import oksdbinterfaces
 import click
 import os
 import glob
+from oksconfgen.createOKSdb import generate_file
 
 @click.command()
 @click.option('--include', '-i', multiple=True,
@@ -14,40 +15,7 @@ def generate(oksfile, include):
   The file will automatically include the coredal schema 
   and any other OKS files you specify"""
 
-  includefiles = ["schema/coredal/dunedaq.schema.xml"]
-
-  searchdirs = [path for path in os.environ['DUNEDAQ_SHARE_PATH'].split(':')]
-  searchdirs.append(os.path.dirname(oksfile))
-  for inc in include:
-    #print (f"Searching for {inc}")
-    match = False
-    inc = inc.removesuffix('.xml')
-    if inc.endswith('.data'):
-      ftype = 'data'
-    elif inc.endswith('.schema'):
-      ftype = 'schema'
-    else:
-      ftype = '*'
-      inc = inc + "*"
-    for path in searchdirs:
-      matches = glob.glob(f"{inc}.xml", root_dir=path)
-      if len(matches) == 0:
-        matches = glob.glob(f"{ftype}/{inc}.xml", root_dir=path)
-      for filename in matches:
-        print (f"Adding {filename} to include list")
-        includefiles.append(filename)
-        match = True
-      if match:
-        break
-    if not match:
-      click.secho(f'Error could not find include file for {inc}',fg='red')
-      return
-  db = oksdbinterfaces.Configuration("oksconfig")
-  if not oksfile.endswith('.data.xml'):
-    oksfile = oksfile + '.data.xml'
-  click.secho (f"Creating OKS database file {oksfile}", bold=True)
-  db.create_db(oksfile, includefiles)
-  db.commit()
+  generate_file(oksfile, include)
 
 if __name__ == '__main__':
   generate()
