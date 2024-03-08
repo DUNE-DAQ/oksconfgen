@@ -87,20 +87,22 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
                     groups.append(rogroup_dal)
                     eth_streams = []
                     rx_queue = 0
-            stream_pars = dal.EthStreamParameters(
-                f"pars-{source_id}",
-                protocol = pars["protocol"],
-                mode = pars["mode"],
-                tx_hostname = pars["tx_host"],
-                tx_mac = pars["tx_mac"],
-                tx_ip = pars["tx_ip"],
-                lcore = lcores[rx_queue%len(lcores)],
-                rx_queue = rx_queue
-            )
-            db.update_dal(stream_pars)
-            rx_queue = rx_queue + 1
-            last_eth_pars = pars
-            last_eth_source_id = source_id
+            if pars != last_eth_pars:
+                # Only create a new dal object if the parameters are different to the last one
+                stream_pars = dal.EthStreamParameters(
+                    f"pars-{source_id}",
+                    protocol = pars["protocol"],
+                    mode = pars["mode"],
+                    tx_hostname = pars["tx_host"],
+                    tx_mac = pars["tx_mac"],
+                    tx_ip = pars["tx_ip"],
+                    lcore = lcores[rx_queue%len(lcores)],
+                    rx_queue = rx_queue
+                )
+                db.update_dal(stream_pars)
+                rx_queue = rx_queue + 1
+                last_eth_pars = pars
+                last_eth_source_id = source_id
         elif entry["kind"] == "flx":
             flx_source_id = source_id
             flx_streams_found = True
@@ -186,7 +188,7 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
                 pars = entry["parameters"]
                 if last_pars != None:
                     if pars["tx_host"] != last_pars['tx_host']:
-                        print(f"Adding HermesController {hermes_id} for {pars['tx_host']=} {last_pars['tx_host']=}")
+                        # print(f"Adding HermesController {hermes_id} for {pars['tx_host']=} {last_pars['tx_host']=}")
                         hermes_controller_dal = dal.HermesController(
                             hermes_id,
                             uri=f"ipbusudp-2.0://{last_pars['tx_host']}:50001",
@@ -209,7 +211,6 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
                         source=stream_dals[source_id],
                         destination=nic_dals[nic_name]
                     )
-                    print(f"Updating DB with link_dal {link_dal=}")
                     db.update_dal(link_dal)
                     links.append(link_dal)
                     link_number = link_number + 1
@@ -217,7 +218,7 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
                 last_tx_mac = pars["tx_mac"]
                 last_tx_host = pars["tx_host"]
         if pars["tx_host"] != last_tx_host:
-            print(f"Adding HermesController {hermes_id}")
+            # print(f"Adding HermesController {hermes_id}")
             hermes_controller_dal = dal.HermesController(
                 hermes_id,
                 uri=f"ipbusudp-2.0://{last_pars['tx_host']}:50001",
