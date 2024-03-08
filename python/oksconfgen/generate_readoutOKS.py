@@ -99,6 +99,7 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
     db.create_db(oksfile, includefiles)
 
     rogs = db.get_dals(class_name="ReadoutGroup")
+    hermes_controllers = db.get_dals(class_name="HermesController")
 
     if len(db.get_dals(class_name="LatencyBuffer")) > 0:
         print(f"Using predefined Latency buffers etc.")
@@ -142,7 +143,7 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
     else:
         netrules = [rule]
         # Assume we have all the other rules we need
-        for rule in ["tp-net-rule", "ts-net-rule"]:
+        for rule in ["tp-net-rule", "ts-net-rule", "ta-net-rule"]:
             netrules.append(db.get_dal(class_name="NetworkConnectionRule", uid=rule))
 
     try:
@@ -186,6 +187,12 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
                 nicrec = dal.NICReceiverConf(f"nicrcvr-1", template_for="NICReceiver")
                 db.update_dal(nicrec)
             datareader = nicrec
+            hermes_app = dal.DaqApplication(
+                f"hermes-{rog.id}",
+                runs_on=host,
+                modules=hermes_controllers
+            )
+            db.update_dal(hermes_app)
         if type(rog.contains[0]).__name__ == "FelixInterface":
             if flxcard == None:
                 print("Generating Felix DataReaderConf")
@@ -256,6 +263,22 @@ def generate_net_rules(dal, db):
     db.update_dal(newdescr)
     newrule = dal.NetworkConnectionRule(
         "fa-net-rule", endpoint_class="FragmentAggregator", descriptor=newdescr
+    )
+    db.update_dal(newrule)
+    netrules.append(newrule)
+
+    newdescr = dal.NetworkConnectionDescriptor(
+        "ta-net-descr",
+        uid_base="ta_",
+        connection_type="kPubSub",
+        data_type="TriggerActivity",
+        associated_service=dataservice
+    )
+    db.update_dal(newdescr)
+    newrule = dal.NetworkConnectionRule(
+        "ta-net-rule",
+        endpoint_class="DataSubscriber",
+        descriptor=newdescr
     )
     db.update_dal(newrule)
     netrules.append(newrule)
