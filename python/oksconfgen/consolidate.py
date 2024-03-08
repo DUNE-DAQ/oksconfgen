@@ -1,0 +1,42 @@
+import oksdbinterfaces
+import sys
+
+def get_all_includes(db, file):
+    includes = db.get_includes(file)
+    for include in includes:
+        if "data.xml" in include:
+            includes += get_all_includes(db, include)
+
+    return list(set(includes))
+
+def consolidate_db(oksfile, output_file):
+    sys.setrecursionlimit(10000) # for example
+    print("Reading database")    
+    db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+
+    schemafiles = [ ]
+    includes = get_all_includes(db, None)    
+    schemafiles += [i for i in includes if "schema.xml" in i]
+    print(f"Included schemas: {schemafiles}")
+
+    print("Creating new database")
+    new_db = oksdbinterfaces.Configuration("oksconfig")
+    new_db.create_db(output_file, schemafiles)    
+
+    new_db.commit()
+    
+    print("Reading dal objects from old db")
+    dals = db.get_all_dals()
+
+    print(f"Copying objects to new db")
+    for dal in dals:
+
+        print(f"Loading object {dal} into cache")
+        db.get_dal(dals[dal].className(), dals[dal].id)        
+        
+        print(f"Copying object: {dal}")      
+        new_db.add_dal(dals[dal])
+
+    print("Saving database")
+    new_db.commit()
+    print("DONE")    
