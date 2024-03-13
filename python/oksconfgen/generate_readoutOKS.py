@@ -128,8 +128,8 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
         db.update_dal(linkhandler)
         tphandler = dal.ReadoutModuleConf(
             "def-tp-handler",
-            template_for="TPHandlerModule",
-            input_data_type="TPSet",
+            template_for="TriggerDataHandler",
+            input_data_type="TriggerPrimitive",
             request_handler=reqhandler,
             latency_buffer=latencybuffer,
             data_processor=dataproc,
