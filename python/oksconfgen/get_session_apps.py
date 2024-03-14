@@ -36,3 +36,19 @@ def get_session_apps(oksfile, session_name=""):
     segment = session.segment
 
     return get_segment_apps(segment)
+
+
+def get_database_apps(oksfile):
+
+    output = {}
+    session_db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+    session_dals = session_db.get_dals(class_name="Session")
+    if len(session_dals) == 0:
+        print(f"Error could not find any Session in file {oksfile}")
+        return {}
+
+    for session in session_dals:
+        segment = session.segment
+        output[session.id] = get_segment_apps(segment)
+
+    return output
