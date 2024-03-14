@@ -20,22 +20,9 @@ def generate_hwmap(oksfile, n_streams, n_apps = 1, det_id = 3, app_host = "local
     streams = []
     source_id = 0
 
-    nic_stats_dal = dal.NICStatsConf(f"nicStats-{group_name}")
-    db.update_dal(nic_stats_dal)
-    nic_config_dal = dal.NICInterfaceConfiguration(
-        f"nicConfig-{group_name}", stats_conf=nic_stats_dal
-    )
-    db.update_dal(nic_config_dal)
-
-    stream_pars = dal.EthStreamParameters(
-        f"pars",
-        protocol=eth_protocol,
+    stream_pars = dal.StreamParameters(
+        f"dummyStream-1",
         mode=flx_mode,
-        tx_hostname=app_host,
-        tx_mac="00:00:00:00:00:00",
-        tx_ip="0.0.0.0",
-        # lcore = pars["lcore"],
-        # rx_queue = pars["rx_queue"]
     )
 
     db.update_dal(stream_pars)
@@ -63,14 +50,9 @@ def generate_hwmap(oksfile, n_streams, n_apps = 1, det_id = 3, app_host = "local
             source_id = source_id + 1
 
         print(f"New nic adding nic with id nic-{app}")
-        nic_dal = dal.NICInterface(
-            f"nic-{app}",
-            rx_hostname=app_host,
-            rx_mac="00:00:00:00:00:00",
-            rx_ip="0.0.0.0",
-            rx_iface=app,
+        nic_dal = dal.ReadoutInterface(
+            f"ROInterface-{app}",
             contains=streams,
-            configuration=nic_config_dal,
         )
         db.update_dal(nic_dal)
         rogroup_dal = dal.ReadoutGroup(f"group-{app}", contains=[nic_dal])

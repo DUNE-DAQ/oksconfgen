@@ -45,36 +45,39 @@ def consolidate_db(oksfile, output_file):
 
 
 def consolidate_files(oksfile, *input_files):
-    schemafiles = []
+    includes = []
     dbs = []
 
     sys.setrecursionlimit(10000)  # for example
 
     for input_file in input_files:
         dbs.append(oksdbinterfaces.Configuration("oksconfig:" + input_file))
-        includes = get_all_includes(dbs[len(dbs) - 1], None)
-        schemafiles += [i for i in includes if "schema.xml" in i]
-    schemafiles = list(set(schemafiles))
-    print(f"Included schemas: {schemafiles}")
+        includes += get_all_includes(dbs[len(dbs) - 1], None)
+        
+    includes = list(set(includes))
+    includes = [i for i in includes if i not in input_files]    
+    print(f"Included files: {includes}")
 
     print("Creating new database")
     new_db = oksdbinterfaces.Configuration("oksconfig")
-    new_db.create_db(oksfile, schemafiles)
+    new_db.create_db(oksfile, includes)
 
     new_db.commit()
 
     for db in dbs:
-        # print(f"Reading dal objects from old db")
+        print(f"Reading dal objects from old db")
         dals = db.get_all_dals()
 
-        # print(f"Copying objects to new db")
+        print(f"Copying objects to new db")
         for dal in dals:
 
-            # print(f"Loading object {dal} into cache")
-            # db.get_dal(dals[dal].className(), dals[dal].id)
-
-            # print(f"Copying object: {dal}")
-            new_db.add_dal(dals[dal])
+            try: 
+                new_db.get_dal(dals[dal].className(), dals[dal].id)
+                #print(f"ERROR: Database already contains object {dals[dal].id} of type {dals[dal].className()}")                
+            except:            
+                #print(f"Copying object: {dal}")
+                new_db.add_dal(dals[dal])
+        new_db.commit()
 
     print("Saving database")
     new_db.commit()
