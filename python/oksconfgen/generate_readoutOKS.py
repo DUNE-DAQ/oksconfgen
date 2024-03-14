@@ -13,6 +13,7 @@ def generate_readout(
     segment,
     session,
     emulated_file_name="asset://?checksum=e96fd6efd3f98a9a3bfaba32975b476e",
+    tpg_enabled=True,
 ):
     """Simple script to create an OKS configuration file for all
   ReadoutApplications defined in a readout map.
@@ -112,7 +113,7 @@ def generate_readout(
     rogs = db.get_dals(class_name="ReadoutGroup")
     hermes_controllers = db.get_dals(class_name="HermesController")
 
-    if len(db.get_dals(class_name="LatencyBuffer")) > 0:
+    if len(db.get_dals(class_name="LatencyBuffer")) > 0 and tpg_enabled:
         print(f"Using predefined Latency buffers etc.")
         reqhandler = db.get_dal(
             class_name="RequestHandler", uid="def-data-request-handler"
@@ -120,22 +121,33 @@ def generate_readout(
         latencybuffer = db.get_dal(class_name="LatencyBuffer", uid="def-latency-buf")
         linkhandler = db.get_dal(class_name="ReadoutModuleConf", uid="def-link-handler")
         tphandler = db.get_dal(class_name="ReadoutModuleConf", uid="def-tp-handler")
+
     else:
         print(f"Creating locally defined Latency buffers etc.")
         reqhandler = dal.RequestHandler("rh-1")
         db.update_dal(reqhandler)
-        latencybuffer = dal.LatencyBuffer("lb-1")
+        latencybuffer = dal.LatencyBuffer(
+            "lb-1",
+            numa_aware=True,
+            numa_node=1,
+            size=139008,
+            alignment_size=4096,
+            intrinsic_allocator=True,
+        )
         db.update_dal(latencybuffer)
         dataproc = dal.RawDataProcessor(
             "dataproc-1",
             max_ticks_tot=10000,
+            mask_processing=False,            
             algorithm="SimpleThreshold",
             threshold=1900,
             channel_map="PD2HDChannelMap",
+            tpg_enabled=tpg_enabled,
         )
+                    
         db.update_dal(dataproc)
         linkhandler = dal.ReadoutModuleConf(
-            "def-link-handler",
+            "linkhandler-1",
             template_for="FDDataLinkHandler",
             input_data_type="WIBEthFrame",
             request_handler=reqhandler,
@@ -144,7 +156,7 @@ def generate_readout(
         )
         db.update_dal(linkhandler)
         tphandler = dal.ReadoutModuleConf(
-            "def-tp-handler",
+            "tphandler-1",
             template_for="TriggerDataHandler",
             input_data_type="TriggerPrimitive",
             request_handler=reqhandler,
@@ -242,17 +254,18 @@ def generate_readout(
 
         ru = dal.ReadoutApplication(
             f"ru-{rog.id}",
-            tp_source_id=appnum + 100,
-            ta_source_id=appnum + 1000,
             runs_on=host,
             contains=[rog],
             network_rules=netrules,
             queue_rules=qrules,
             link_handler=linkhandler,
-            tp_handler=tphandler,
             data_reader=datareader,
             uses=rohw,
         )
+        if tpg_enabled:
+            ru.tp_handler = tphandler
+            ru.tp_source_id=appnum + 100
+            ru.ta_source_id=appnum + 1000
         appnum = appnum + 1
         print(f"{ru=}")
         db.update_dal(ru)
@@ -357,7 +370,9 @@ def generate_queue_rules(dal, db):
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
-        "data-requests-queue-rule", destination_class="FDDataLinkHandler", descriptor=newdescr
+        "data-requests-queue-rule",
+        destination_class="FDDataLinkHandler",
+        descriptor=newdescr,
     )
     db.update_dal(newrule)
     qrules.append(newrule)
