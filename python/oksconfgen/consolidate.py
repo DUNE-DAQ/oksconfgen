@@ -48,6 +48,7 @@ def consolidate_files(oksfile, *input_files):
     includes = []
     dbs = []
 
+    print(f"Consolidating {len(input_files)} databases into output database {oksfile}. Input databases: {input_files}")
     sys.setrecursionlimit(10000)  # for example
 
     for input_file in input_files:
@@ -58,17 +59,16 @@ def consolidate_files(oksfile, *input_files):
     includes = [i for i in includes if i not in input_files]    
     print(f"Included files: {includes}")
 
-    print("Creating new database")
     new_db = oksdbinterfaces.Configuration("oksconfig")
     new_db.create_db(oksfile, includes)
 
     new_db.commit()
 
     for db in dbs:
-        print(f"Reading dal objects from old db")
+        #print(f"Reading dal objects from old db")
         dals = db.get_all_dals()
 
-        print(f"Copying objects to new db")
+        #print(f"Copying objects to new db")
         for dal in dals:
 
             try: 
@@ -79,6 +79,5 @@ def consolidate_files(oksfile, *input_files):
                 new_db.add_dal(dals[dal])
         new_db.commit()
 
-    print("Saving database")
+    print(f"Saving database {oksfile}")
     new_db.commit()
-    print("DONE")
