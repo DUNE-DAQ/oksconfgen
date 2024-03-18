@@ -34,8 +34,8 @@ def generate_hwmap(oksfile, n_streams, n_apps = 1, det_id = 3, app_host = "local
             geo_dal = dal.GeoId(
                 f"geioId-{source_id}",
                 detector_id=det_id,
-                crate_id=0,
-                slot_id=app,
+                crate_id=app,
+                slot_id=0,
                 stream_id=stream_no,
             )
             db.update_dal(geo_dal)
