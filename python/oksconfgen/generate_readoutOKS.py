@@ -243,7 +243,7 @@ def generate_readout(
                 f"hermes-{rog.id}", runs_on=host, modules=hermes_controllers
             )
             db.update_dal(hermes_app)
-        if type(rog.contains[0]).__name__ == "FelixInterface":
+        elif type(rog.contains[0]).__name__ == "FelixInterface":
             if flxcard == None:
                 print("Generating Felix DataReaderConf")
                 flxcard = dal.DataReaderConf(
@@ -251,6 +251,9 @@ def generate_readout(
                 )
                 db.update_dal(flxcard)
             datareader = flxcard
+        else :
+            print(f"ReadoutGroup contains unknown interface type {type(rog.contains[0]).__name__}")
+            continue
 
         ru = dal.ReadoutApplication(
             f"ru-{rog.id}",
@@ -270,6 +273,9 @@ def generate_readout(
         print(f"{ru=}")
         db.update_dal(ru)
         ruapps.append(ru)
+    if appnum == 0:
+        print(f"No ReadoutApplications generated\n")
+        return
 
     if segment or session:
         fsm = db.get_dal(class_name="FSMconfiguration", uid="fsmConf-1")
@@ -279,7 +285,7 @@ def generate_readout(
         db.update_dal(seg)
 
         if session:
-            ro_map = db.get_dal(class_name="ReadoutMap", uid="readoutmap")
+            ro_maps = db.get_dals(class_name="ReadoutMap")
             detconf = dal.DetectorConfig("dummy-detector")
             db.update_dal(detconf)
             sessname = os.path.basename(readoutmap).removesuffix(".data.xml")
@@ -287,7 +293,7 @@ def generate_readout(
                 f"{sessname}-session",
                 segment=seg,
                 detector_configuration=detconf,
-                readout_map=ro_map,
+                readout_map=ro_maps[0],
             )
             db.update_dal(sessiondal)
 
