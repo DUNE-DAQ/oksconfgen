@@ -113,6 +113,7 @@ def generate_readout(
     rogs = db.get_dals(class_name="ReadoutGroup")
     hermes_controllers = db.get_dals(class_name="HermesController")
 
+    # Check tpg_enabled here, if it is False, then we want to make our own RawDataProcessor
     if len(db.get_dals(class_name="LatencyBuffer")) > 0 and tpg_enabled:
         print(f"Using predefined Latency buffers etc.")
         reqhandler = db.get_dal(
