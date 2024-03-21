@@ -1,9 +1,20 @@
+from calendar import day_abbr
+from curses import qiflush
 import oksdbinterfaces
 import os
 import glob
+from oksconfgen.assets import resolve_asset_file
 
 
-def generate_readout(readoutmap, oksfile, include, segment, session):
+def generate_readout(
+    readoutmap,
+    oksfile,
+    include,
+    segment,
+    session,
+    emulated_file_name="asset://?checksum=e96fd6efd3f98a9a3bfaba32975b476e",
+    tpg_enabled=True,
+):
     """Simple script to create an OKS configuration file for all
   ReadoutApplications defined in a readout map.
 
@@ -41,6 +52,7 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
     includefiles = [
         "schema/coredal/dunedaq.schema.xml",
         "schema/appdal/application.schema.xml",
+        "schema/appdal/trigger.schema.xml",
         "schema/appdal/fdmodules.schema.xml",
         readoutmap,
     ]
@@ -91,7 +103,7 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
             print(f"Error could not find include file for {inc}")
             return
 
-    dal = oksdbinterfaces.dal.module("generated", includefiles[2])
+    dal = oksdbinterfaces.dal.module("generated", includefiles[3])
     db = oksdbinterfaces.Configuration("oksconfig")
     if not oksfile.endswith(".data.xml"):
         oksfile = oksfile + ".data.xml"
@@ -101,7 +113,8 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
     rogs = db.get_dals(class_name="ReadoutGroup")
     hermes_controllers = db.get_dals(class_name="HermesController")
 
-    if len(db.get_dals(class_name="LatencyBuffer")) > 0:
+    # Check tpg_enabled here, if it is False, then we want to make our own RawDataProcessor
+    if len(db.get_dals(class_name="LatencyBuffer")) > 0 and tpg_enabled:
         print(f"Using predefined Latency buffers etc.")
         reqhandler = db.get_dal(
             class_name="RequestHandler", uid="def-data-request-handler"
@@ -109,16 +122,33 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
         latencybuffer = db.get_dal(class_name="LatencyBuffer", uid="def-latency-buf")
         linkhandler = db.get_dal(class_name="ReadoutModuleConf", uid="def-link-handler")
         tphandler = db.get_dal(class_name="ReadoutModuleConf", uid="def-tp-handler")
+
     else:
         print(f"Creating locally defined Latency buffers etc.")
         reqhandler = dal.RequestHandler("rh-1")
         db.update_dal(reqhandler)
-        latencybuffer = dal.LatencyBuffer("lb-1")
+        latencybuffer = dal.LatencyBuffer(
+            "lb-1",
+            numa_aware=True,
+            numa_node=1,
+            size=139008,
+            alignment_size=4096,
+            intrinsic_allocator=True,
+        )
         db.update_dal(latencybuffer)
-        dataproc = dal.DataProcessor("dataproc-1")
+        dataproc = dal.RawDataProcessor(
+            "dataproc-1",
+            max_ticks_tot=10000,
+            mask_processing=False,            
+            algorithm="SimpleThreshold",
+            threshold=1900,
+            channel_map="PD2HDChannelMap",
+            tpg_enabled=tpg_enabled,
+        )
+                    
         db.update_dal(dataproc)
         linkhandler = dal.ReadoutModuleConf(
-            "def-link-handler",
+            "linkhandler-1",
             template_for="FDDataLinkHandler",
             input_data_type="WIBEthFrame",
             request_handler=reqhandler,
@@ -127,16 +157,16 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
         )
         db.update_dal(linkhandler)
         tphandler = dal.ReadoutModuleConf(
-            "def-tp-handler",
-            template_for="TPHandlerModule",
-            input_data_type="TPSet",
+            "tphandler-1",
+            template_for="TriggerDataHandler",
+            input_data_type="TriggerPrimitive",
             request_handler=reqhandler,
             latency_buffer=latencybuffer,
             data_processor=dataproc,
         )
         db.update_dal(tphandler)
     try:
-        rule = db.get_dal(class_name="NetworkConnectionRule", uid="fa-net-rule")
+        rule = db.get_dal(class_name="NetworkConnectionRule", uid="data-req-net-rule")
     except:
         # Failed to get rule, now we have to invent some
         netrules = generate_net_rules(dal, db)
@@ -181,6 +211,29 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
         # print(f"Looking up host[{hostnum}] ({hosts[hostnum]})")
         host = db.get_dal(class_name="VirtualHost", uid=hosts[hostnum])
 
+        # Emulated stream
+        if type(rog.contains[0]).__name__ == "ReadoutInterface":
+            if nicrec == None:
+                stream_emu = dal.StreamEmulationParameters(
+                    "stream-emu",
+                    data_file_name=resolve_asset_file(emulated_file_name),
+                    input_file_size_limit=1000000,
+                    set_t0=True,
+                    random_population_size=100000,
+                    frame_error_rate_hz=0,
+                    generate_periodic_adc_pattern=True,
+                    TP_rate_per_channel=1,
+                )
+                db.update_dal(stream_emu)
+                print("Generating NICReceiverConf")
+                nicrec = dal.NICReceiverConf(
+                    f"nicrcvr-1",
+                    template_for="FDFakeCardReader",
+                    emulation_mode=1,
+                    emulation_conf=stream_emu,
+                )
+                db.update_dal(nicrec)
+            datareader = nicrec
         if type(rog.contains[0]).__name__ == "NICInterface":
             if nicrec == None:
                 print("Generating NICReceiverConf")
@@ -188,9 +241,7 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
                 db.update_dal(nicrec)
             datareader = nicrec
             hermes_app = dal.DaqApplication(
-                f"hermes-{rog.id}",
-                runs_on=host,
-                modules=hermes_controllers
+                f"hermes-{rog.id}", runs_on=host, modules=hermes_controllers
             )
             db.update_dal(hermes_app)
         elif type(rog.contains[0]).__name__ == "FelixInterface":
@@ -207,16 +258,18 @@ def generate_readout(readoutmap, oksfile, include, segment, session):
 
         ru = dal.ReadoutApplication(
             f"ru-{rog.id}",
-            tp_source_id=appnum,
             runs_on=host,
             contains=[rog],
             network_rules=netrules,
             queue_rules=qrules,
             link_handler=linkhandler,
-            tp_handler=tphandler,
             data_reader=datareader,
             uses=rohw,
         )
+        if tpg_enabled:
+            ru.tp_handler = tphandler
+            ru.tp_source_id=appnum + 100
+            ru.ta_source_id=appnum + 1000
         appnum = appnum + 1
         print(f"{ru=}")
         db.update_dal(ru)
@@ -263,7 +316,7 @@ def generate_net_rules(dal, db):
         "fa-net-descr",
         uid_base="data_requests_for_",
         connection_type="kSendRecv",
-        data_type="Fragment",
+        data_type="DataRequest",
         associated_service=dataservice,
     )
     db.update_dal(newdescr)
@@ -278,13 +331,11 @@ def generate_net_rules(dal, db):
         uid_base="ta_",
         connection_type="kPubSub",
         data_type="TriggerActivity",
-        associated_service=dataservice
+        associated_service=dataservice,
     )
     db.update_dal(newdescr)
     newrule = dal.NetworkConnectionRule(
-        "ta-net-rule",
-        endpoint_class="DataSubscriber",
-        descriptor=newdescr
+        "ta-net-rule", endpoint_class="DataSubscriber", descriptor=newdescr
     )
     db.update_dal(newrule)
     netrules.append(newrule)
@@ -326,7 +377,9 @@ def generate_queue_rules(dal, db):
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
-        "dataRequestRule", destination_class="FDDataLinkHandler", descriptor=newdescr
+        "data-requests-queue-rule",
+        destination_class="FDDataLinkHandler",
+        descriptor=newdescr,
     )
     db.update_dal(newrule)
     qrules.append(newrule)
@@ -336,7 +389,7 @@ def generate_queue_rules(dal, db):
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
-        "aggregatorInputRule",
+        "fa-queue-rule",
         destination_class="FragmentAggregator",
         descriptor=newdescr,
     )

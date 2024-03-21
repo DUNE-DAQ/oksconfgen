@@ -3,7 +3,6 @@ import os
 import json
 import sys
 
-
 def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
     """Simple script to convert a JSON readout map file to an OKS file."""
 
