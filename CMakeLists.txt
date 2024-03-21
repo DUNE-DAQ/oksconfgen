@@ -1,6 +1,6 @@
 
 cmake_minimum_required(VERSION 3.12)
-project(oksconfgen VERSION 0.0.0)
+project(oksconfgen VERSION 1.0.0)
 
 find_package(daq-cmake REQUIRED)
 
