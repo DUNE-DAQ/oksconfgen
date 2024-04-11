@@ -65,19 +65,19 @@ def consolidate_files(oksfile, *input_files):
     new_db.commit()
 
     for db in dbs:
-        #print(f"Reading dal objects from old db")
+        print(f"Reading dal objects from old db {db}")
         dals = db.get_all_dals()
 
-        #print(f"Copying objects to new db")
+        print(f"Copying objects to new db {new_db}")
         for dal in dals:
 
             try: 
                 new_db.get_dal(dals[dal].className(), dals[dal].id)
-                #print(f"ERROR: Database already contains object {dals[dal].id} of type {dals[dal].className()}")                
+                #print(f"ERROR: Database already contains object {dal}")  
             except:            
-                #print(f"Copying object: {dal}")
+                print(f"Copying object: {dal}")
                 new_db.add_dal(dals[dal])
-        new_db.commit()
+            new_db.commit()
 
-    print(f"Saving database {oksfile}")
+    print(f"Saving database {new_db}")
     new_db.commit()
