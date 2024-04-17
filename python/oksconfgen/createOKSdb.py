@@ -10,7 +10,7 @@ def generate_file(oksfile, include):
 
     includefiles = ["schema/coredal/dunedaq.schema.xml"]
 
-    searchdirs = [path for path in os.environ["DUNEDAQ_SHARE_PATH"].split(":")]
+    searchdirs = [path for path in os.environ["DUNEDAQ_DB_PATH"].split(":")]
     searchdirs.append(os.path.dirname(oksfile))
     for inc in include:
         # print (f"Searching for {inc}")
