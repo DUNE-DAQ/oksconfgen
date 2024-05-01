@@ -216,13 +216,13 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
                 last_pars = pars
                 last_tx_mac = pars["tx_mac"]
                 last_tx_host = pars["tx_host"]
-        if pars["tx_host"] != last_tx_host:
+        if link_number > 0:
             # print(f"Adding HermesController {hermes_id}")
             hermes_controller_dal = dal.HermesController(
                 hermes_id,
                 uri=f"ipbusudp-2.0://{last_pars['tx_host']}:50001",
                 address_table=address_table_dal,
-                links=hermes_links
+                links=links
             )
             db.update_dal(hermes_controller_dal)
 
