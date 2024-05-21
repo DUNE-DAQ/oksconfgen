@@ -328,7 +328,7 @@ def generate_net_rules(dal, db):
 
     newdescr = dal.NetworkConnectionDescriptor(
         "ta-net-descr-gen",
-        uid_base="ta_",
+        uid_base="tas_",
         connection_type="kPubSub",
         data_type="TriggerActivity",
         associated_service=dataservice,
@@ -342,7 +342,7 @@ def generate_net_rules(dal, db):
 
     newdescr = dal.NetworkConnectionDescriptor(
         "tp-net-descr-gen",
-        uid_base="trigger_primitive_data_request",
+        uid_base="tps_",
         connection_type="kPubSub",
         data_type="TPSet",
         associated_service=tpservice,
@@ -356,7 +356,7 @@ def generate_net_rules(dal, db):
 
     newdescr = dal.NetworkConnectionDescriptor(
         "ts-net-descr-gen",
-        uid_base="timeSync",
+        uid_base="time_sync_",
         connection_type="kPubSub",
         data_type="TimeSync",
         associated_service=timeservice,
@@ -373,7 +373,7 @@ def generate_net_rules(dal, db):
 def generate_queue_rules(dal, db):
     qrules = []
     newdescr = dal.QueueDescriptor(
-        "dataRequest-gen", queue_type="kFollySPSCQueue", data_type="DataRequest", uid_base="data_reqs_for_"
+        "dataRequest-gen", queue_type="kFollySPSCQueue", data_type="DataRequest", uid_base="internal_data_requests_for_"
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
@@ -385,7 +385,7 @@ def generate_queue_rules(dal, db):
     qrules.append(newrule)
 
     newdescr = dal.QueueDescriptor(
-        "aggregatorInput-gen", queue_type="kFollyMPMCQueue", data_type="Fragment", uid_base="fragments_from_"
+        "aggregatorInput-gen", queue_type="kFollyMPMCQueue", data_type="Fragment", uid_base="internal_fragments_"
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
@@ -397,7 +397,7 @@ def generate_queue_rules(dal, db):
     qrules.append(newrule)
 
     newdescr = dal.QueueDescriptor(
-        "rawWIBInput-gen", queue_type="kFollySPSCQueue", data_type="WIBEthFrame", uid_base="raw_"
+        "rawWIBInput-gen", queue_type="kFollySPSCQueue", data_type="WIBEthFrame", uid_base="raw_input_"
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
@@ -411,7 +411,7 @@ def generate_queue_rules(dal, db):
         queue_type="kFollyMPMCQueue",
         capacity=100000,
         data_type="TriggerPrimitive",
-        uid_base="tps_"        
+        uid_base="tp_input_"        
     )
     db.update_dal(newdescr)
     newrule = dal.QueueConnectionRule(
