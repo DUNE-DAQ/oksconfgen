@@ -53,11 +53,8 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
             eth_source_id = source_id
             if not eth_streams_found:
                 eth_streams_found = True
-                nic_stats_dal = dal.NICStatsConf(f"nicStats-{group_name}")
-                db.update_dal(nic_stats_dal)
                 nic_config_dal = dal.NICInterfaceConfiguration(
-                    f"nicConfig-{group_name}",
-                    stats_conf=nic_stats_dal
+                    f"nicConfig-{group_name}"
                 )
                 db.update_dal(nic_config_dal)
             pars = entry["parameters"]
