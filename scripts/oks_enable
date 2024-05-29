@@ -1,5 +1,5 @@
 #!/bin/env python3
-import oksdbinterfaces
+import conffwk
 import coredal
 
 import click
