@@ -1,6 +1,6 @@
 #!/bin/env python3
 
-import oksdbinterfaces
+import conffwk
 import click
 import os
 import json

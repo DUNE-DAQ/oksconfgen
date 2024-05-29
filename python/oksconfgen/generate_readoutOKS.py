@@ -1,6 +1,6 @@
 from calendar import day_abbr
 from curses import qiflush
-import oksdbinterfaces
+import conffwk
 import os
 import glob
 from oksconfgen.assets import resolve_asset_file
@@ -103,8 +103,8 @@ def generate_readout(
             print(f"Error could not find include file for {inc}")
             return
 
-    dal = oksdbinterfaces.dal.module("generated", includefiles[3])
-    db = oksdbinterfaces.Configuration("oksconfig")
+    dal = conffwk.dal.module("generated", includefiles[3])
+    db = conffwk.Configuration("oksconflibs")
     if not oksfile.endswith(".data.xml"):
         oksfile = oksfile + ".data.xml"
     print(f"Creating OKS database file {oksfile}")

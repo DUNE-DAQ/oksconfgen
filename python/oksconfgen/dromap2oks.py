@@ -1,4 +1,4 @@
-import oksdbinterfaces
+import conffwk
 import os
 import json
 import sys
@@ -23,8 +23,8 @@ def dro_json_to_oks(jsonfile, oksfile, source_id_offset, nomap, lcores):
         "schema/appdal/application.schema.xml",
         "schema/appdal/fdmodules.schema.xml",
     ]
-    dal = oksdbinterfaces.dal.module("generated", schemafiles[2])
-    db = oksdbinterfaces.Configuration("oksconfig")
+    dal = conffwk.dal.module("generated", schemafiles[2])
+    db = conffwk.Configuration("oksconflibs")
     db.create_db(oksfile, schemafiles)
 
     groups = []
