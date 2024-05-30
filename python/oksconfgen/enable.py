@@ -1,4 +1,4 @@
-import oksdbinterfaces
+import conffwk
 import coredal
 
 import os
@@ -8,7 +8,7 @@ import glob
 def enable(oksfile, disable, resource, session_name):
     """Script to enable or disable (-d) Resources from the first Session of the
     specified OKS database file"""
-    db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+    db = conffwk.Configuration("oksconflibs:" + oksfile)
     if session_name == "":
         session_dals = db.get_dals(class_name="Session")
         if len(session_dals) == 0:

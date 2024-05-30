@@ -1,4 +1,4 @@
-import oksdbinterfaces
+import conffwk
 import os
 import json
 import sys
@@ -11,8 +11,8 @@ def generate_hwmap(oksfile, n_streams, n_apps = 1, det_id = 3, app_host = "local
         "schema/appdal/application.schema.xml",
         "schema/appdal/fdmodules.schema.xml",
     ]
-    dal = oksdbinterfaces.dal.module("generated", schemafiles[2])
-    db = oksdbinterfaces.Configuration("oksconfig")
+    dal = conffwk.dal.module("generated", schemafiles[2])
+    db = conffwk.Configuration("oksconflibs")
     db.create_db(oksfile, schemafiles)
 
     group_name = os.path.basename(oksfile).removesuffix(".data.xml")

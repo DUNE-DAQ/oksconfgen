@@ -1,4 +1,4 @@
-import oksdbinterfaces
+import conffwk
 import sys
 
 
@@ -14,7 +14,7 @@ def get_all_includes(db, file):
 def consolidate_db(oksfile, output_file):
     sys.setrecursionlimit(10000)  # for example
     print("Reading database")
-    db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+    db = conffwk.Configuration("oksconflibs:" + oksfile)
 
     schemafiles = []
     includes = get_all_includes(db, None)
@@ -22,7 +22,7 @@ def consolidate_db(oksfile, output_file):
     print(f"Included schemas: {schemafiles}")
 
     print("Creating new database")
-    new_db = oksdbinterfaces.Configuration("oksconfig")
+    new_db = conffwk.Configuration("oksconflibs")
     new_db.create_db(output_file, schemafiles)
 
     new_db.commit()
@@ -52,14 +52,14 @@ def consolidate_files(oksfile, *input_files):
     sys.setrecursionlimit(10000)  # for example
 
     for input_file in input_files:
-        dbs.append(oksdbinterfaces.Configuration("oksconfig:" + input_file))
+        dbs.append(conffwk.Configuration("oksconflibs:" + input_file))
         includes += get_all_includes(dbs[len(dbs) - 1], None)
         
     includes = list(set(includes))
     includes = [i for i in includes if i not in input_files]    
     print(f"Included files: {includes}")
 
-    new_db = oksdbinterfaces.Configuration("oksconfig")
+    new_db = conffwk.Configuration("oksconflibs")
     new_db.create_db(oksfile, includes)
 
     new_db.commit()

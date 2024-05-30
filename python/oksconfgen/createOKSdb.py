@@ -1,4 +1,4 @@
-import oksdbinterfaces
+import conffwk
 import os
 import glob
 
@@ -36,7 +36,7 @@ def generate_file(oksfile, include):
         if not match:
             print(f"Error could not find include file for {inc}")
             return
-    db = oksdbinterfaces.Configuration("oksconfig")
+    db = conffwk.Configuration("oksconflibs")
     if not oksfile.endswith(".data.xml"):
         oksfile = oksfile + ".data.xml"
     print(f"Creating OKS database file {oksfile}")

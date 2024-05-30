@@ -1,4 +1,4 @@
-import oksdbinterfaces
+import conffwk
 import coredal
 
 import os
@@ -19,7 +19,7 @@ def get_segment_apps(segment):
 
 def get_session_apps(oksfile, session_name=""):
     """Get the apps defined in the given session"""
-    session_db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+    session_db = conffwk.Configuration("oksconflibs:" + oksfile)
     if session_name == "":
         session_dals = session_db.get_dals(class_name="Session")
         if len(session_dals) == 0:
@@ -41,7 +41,7 @@ def get_session_apps(oksfile, session_name=""):
 def get_database_apps(oksfile):
 
     output = {}
-    session_db = oksdbinterfaces.Configuration("oksconfig:" + oksfile)
+    session_db = conffwk.Configuration("oksconflibs:" + oksfile)
     session_dals = session_db.get_dals(class_name="Session")
     if len(session_dals) == 0:
         print(f"Error could not find any Session in file {oksfile}")
