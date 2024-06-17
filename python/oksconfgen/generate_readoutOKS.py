@@ -228,7 +228,7 @@ def generate_readout(
                 print("Generating DPDKReaderConf")
                 nicrec = dal.DPDKReaderConf(
                     f"nicrcvr-1",
-                    template_for="FDFakeCardReader",
+                    template_for="FDFakeCardReaderModule",
                     emulation_mode=1,
                     emulation_conf=stream_emu,
                 )
@@ -237,7 +237,7 @@ def generate_readout(
         elif type(rog.contains[0]).__name__ == "NICInterface":
             if nicrec == None:
                 print("Generating DPDKReaderConf")
-                nicrec = dal.DPDKReaderConf(f"nicrcvr-1", template_for="DPDKReader")
+                nicrec = dal.DPDKReaderConf(f"nicrcvr-1", template_for="DPDKReaderModule")
                 db.update_dal(nicrec)
             datareader = nicrec
             hermes_app = dal.DaqApplication(
@@ -246,8 +246,8 @@ def generate_readout(
             db.update_dal(hermes_app)
         elif type(rog.contains[0]).__name__ == "FelixInterface":
             if flxcard == None:
-                print("Generating Felix DataReceiverConf")
-                flxcard = dal.DataReceiverConf(
+                print("Generating Felix DataReaderConf")
+                flxcard = dal.DataReaderConf(
                     f"flxConf-1", template_for="FelixReaderModule"
                 )
                 db.update_dal(flxcard)
