@@ -228,7 +228,7 @@ def generate_readout(
                 print("Generating DPDKReaderConf")
                 nicrec = dal.DPDKReaderConf(
                     f"nicrcvr-1",
-                    template_for="FDFakeCardReaderModule",
+                    template_for="FDFakeReaderModule",
                     emulation_mode=1,
                     emulation_conf=stream_emu,
                 )
